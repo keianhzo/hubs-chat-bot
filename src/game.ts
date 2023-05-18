@@ -90,6 +90,7 @@ export class Game {
   type: GameDataI = GAME_DATA[LOTR.name];
   players: Set<string> = new Set<string>();
   skyboxes: Map<string, string>;
+  turn: number;
 
   constructor(config: ConfigT) {
     const { channel, sessionId, hubId } = config;
@@ -102,6 +103,16 @@ export class Game {
       type: CommandE.Start,
       content: WELCOME_MSG,
     };
+    this.turn = 0;
+  }
+
+  nextTurn() {
+    if (this.turn >= this.players.size - 1) {
+      this.turn = 0;
+    } else {
+      this.turn++;
+    }
+    return this.turn;
   }
 
   async connect() {
@@ -120,6 +131,7 @@ export class Game {
     });
     this.state = GameState.DISCONNECTED;
     this.processResponse(this.lastMsg);
+    this.channel?.close();
   }
 
   async text(text: string) {
@@ -145,6 +157,8 @@ export class Game {
     this.type = GAME_DATA[type];
     this.state = GameState.STARTED;
 
+    console.log(`Start with players: ${sessionIds.join(", ")}`);
+
     try {
       let res = await this.bot.send(this.sessionId, [
         {
@@ -160,9 +174,11 @@ export class Game {
           content: `Start. Players: ${sessionIds.join(", ")}`,
         },
       ]);
+      const content: OptionsResponseI = JSON.parse(res) as OptionsResponseI;
+      content.player = Array.from(this.players)[0];
       this.lastMsg = {
         type: CommandE.Options,
-        content: JSON.parse(res) as OptionsResponseI,
+        content,
       };
     } catch (e) {
       this.lastMsg = {
@@ -182,10 +198,12 @@ export class Game {
     this.state = GameState.ENDED;
     this.skyboxes.clear();
     this.bot.clear();
+    this.players.clear();
     this.lastMsg = {
       type: CommandE.Start,
       content: WELCOME_MSG,
     };
+    this.turn = 0;
 
     this.processResponse(this.lastMsg);
   }
@@ -197,13 +215,11 @@ export class Game {
     });
 
     if (this.state === GameState.STARTED) {
-      const users = this.channel?.getUsers(this.sessionId)!;
-      let ids = [...users.keys()];
-      if (ids.includes(sessionId)) {
-        return this.end();
-      }
-
       this.text(`${this.channel!.getName(sessionId)} has joined the game`);
+
+      const users = this.channel?.getUsersInRoom(this.sessionId)!;
+      let sessionIds = [...users.keys()];
+      console.log(`Current players: ${sessionIds.join(", ")}`);
 
       if (sessionId !== this.sessionId) {
         this.players.add(sessionId);
@@ -214,9 +230,11 @@ export class Game {
           role: ChatCompletionRequestMessageRoleEnum.User,
           content: `"${sessionId}" joins the game.`,
         });
+        const content: OptionsResponseI = JSON.parse(res) as OptionsResponseI;
+        content.player = Array.from(this.players)[this.turn];
         this.lastMsg = {
           type: CommandE.Options,
-          content: JSON.parse(res) as OptionsResponseI,
+          content,
         };
       } catch (e) {
         this.lastMsg = {
@@ -236,7 +254,6 @@ export class Game {
 
   async leave(sessionId: string) {
     if (this.state !== GameState.STARTED) {
-      console.log(`The game is not started yet`);
       return;
     }
 
@@ -246,6 +263,10 @@ export class Game {
 
     this.text(`${this.channel!.getName(sessionId)} has left the game`);
 
+    const users = this.channel?.getUsersInRoom(this.sessionId)!;
+    let sessionIds = [...users.keys()];
+    console.log(`Current players: ${sessionIds.join(", ")}`);
+
     if (this.players.size === 0) {
       this.end();
     } else {
@@ -254,9 +275,16 @@ export class Game {
           role: ChatCompletionRequestMessageRoleEnum.User,
           content: `"${sessionId}" leaves the game.`,
         });
+        const index = Array.from(this.players).indexOf(sessionId);
+        let nextTurn = this.turn;
+        if (index === nextTurn) {
+          nextTurn = this.nextTurn();
+        }
+        const content: OptionsResponseI = JSON.parse(res) as OptionsResponseI;
+        content.player = Array.from(this.players)[nextTurn];
         this.lastMsg = {
           type: CommandE.Options,
-          content: JSON.parse(res) as OptionsResponseI,
+          content,
         };
       } catch (e) {
         this.lastMsg = {
@@ -284,9 +312,11 @@ export class Game {
         content: `"${sessionId}": "${option}"`,
       });
       try {
+        const content: OptionsResponseI = JSON.parse(res) as OptionsResponseI;
+        content.player = Array.from(this.players)[this.nextTurn()];
         this.lastMsg = {
           type: CommandE.Options,
-          content: JSON.parse(res) as OptionsResponseI,
+          content,
         };
       } catch (e) {
         this.lastMsg = {
@@ -317,9 +347,11 @@ export class Game {
         content: `${sessionId}: ${msg}`,
       });
       try {
+        const content: OptionsResponseI = JSON.parse(res) as OptionsResponseI;
+        content.player = Array.from(this.players)[this.nextTurn()];
         this.lastMsg = {
           type: CommandE.Options,
-          content: JSON.parse(res) as OptionsResponseI,
+          content,
         };
       } catch (e) {
         this.lastMsg = {
@@ -339,7 +371,7 @@ export class Game {
   processResponse(res: ResponseT) {
     if (res.type === CommandE.Options) {
       const options = res.content as OptionsResponseI;
-      const users = this.channel!.getUsers(this.sessionId);
+      const users = this.channel!.getUsersInRoom(this.sessionId);
       let ids = [...users.keys()];
       ids.forEach((id) => {
         if (id !== this.sessionId) {

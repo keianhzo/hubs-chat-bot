@@ -23,7 +23,7 @@ const start = async (params: MessageParams, ...args: string[]) => {
   const game = games.get(hubId)!;
 
   const type = args[0];
-  const players = channel.getUsers(game.sessionId);
+  const players = channel.getUsersInRoom(game.sessionId);
   let ids = [...players.keys()];
 
   console.log(`start [${ids.join(",")}]`);
@@ -170,10 +170,35 @@ app.get("/connect", async (req, res) => {
       hubChannel.on("message", onMessage);
       try {
         await hubChannel.connect();
+        console.error(`Connected to room ${hubId} at ${host}`);
       } catch (e) {
         hubChannel.close();
       }
       res.sendStatus(200);
+    } catch (e) {
+      res.sendStatus(500);
+      console.error(`An error occurred when connecting to room ${hubId}`, e);
+    }
+  }
+});
+
+app.get("/disconnect", async (req, res) => {
+  const host = (req.query.host as string) || "";
+  const hubId = req.query.hub_id as string;
+
+  if (!host || !hubId) {
+    return res.sendStatus(500);
+  }
+
+  if (!games.has(hubId)) {
+    res.sendStatus(500);
+    console.error(`A connection for room ${hubId} does not exist`);
+  } else {
+    try {
+      const game = games.get(hubId)!;
+      await game.disconnect();
+      res.sendStatus(200);
+      console.error(`Disconnected to room ${hubId} at ${host}`);
     } catch (e) {
       res.sendStatus(500);
       console.error(`An error occurred when connecting to room ${hubId}`, e);

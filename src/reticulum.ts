@@ -149,6 +149,15 @@ export class HubChannel extends EventEmitter {
       // Not used
     });
 
+    this.channel.onClose(() => {
+      const hubId = this.channel.topic.split(":")[1];
+      this.emit("disconnect", {
+        channel: this,
+        hubId,
+        timestamp: Date.now(),
+      } as DisconnectParams);
+    });
+
     this.channel.on("message", ({ session_id, type, body, from, discord }) => {
       const hubId = this.channel.topic.split(":")[1];
       this.emit("message", {
@@ -220,6 +229,21 @@ export class HubChannel extends EventEmitter {
       const state = presence.state[id];
       if (session_id !== id) {
         result.set(id, state);
+      }
+    }
+    return result;
+  }
+
+  getUsersInRoom(session_id: string) {
+    const result = new Map<string, any>();
+    const presence = this.presence as any;
+    for (const id in presence.state) {
+      const state = presence.state[id];
+      if (session_id !== id && state.metas.length > 0) {
+        const mostRecent = state.metas[state.metas.length - 1];
+        if (mostRecent != null && mostRecent.presence === "room") {
+          result.set(id, state);
+        }
       }
     }
     return result;

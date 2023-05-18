@@ -10,7 +10,6 @@ You are a text-based video game based on %THEME%.
 `;
 const RULES_PROMPT = `
 this are the game rules:
-- Alternate turns between players.
 - You'll prompt the player with 4 options: A, B, C and D.
 - When I say "end" the game ends.
 - The game starts when I say "start".
@@ -22,7 +21,6 @@ Your output must always be ECMA-404 standard JSON. Follow this example:
   prompt: "the game prompt in around 40 words",
   backdrop: "description of the surroundings in around 20-30 words",
   options: { A: "option A", B: "option B", C: "option C", D: "option D" },
-  player: "the name of player to prompt. Alternate players every turn.",
   state: "state of the game: started or ended",
   weather: "the weather. Must be one of these: Rain, Wind, Clear or Snow",
   time: "time of the day as a number from 0 to 24",
