@@ -14,7 +14,7 @@ import {
 import { HubChannel } from "./reticulum";
 import { SkyboxStyleT, Skyboxes } from "./skybox";
 
-const WELCOME_MSG = `Hi, I'm you adventure game provider! Click the start button below to start a new game with the current players in the room.`;
+const WELCOME_MSG = `Hi, I'm you adventure game provider! Click the start button below to start a new game.`;
 
 const GAME_DATA: { [key: string]: GameDataI } = {
   lotr: LOTR,
