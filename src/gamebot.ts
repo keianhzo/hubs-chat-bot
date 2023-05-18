@@ -37,53 +37,72 @@ export class GameBot {
   openai: OpenAIApi;
   config: CompletionRequestT;
   messages: Array<ChatCompletionRequestMessage>;
+  busy: boolean;
 
   constructor(config?: CompletionRequestT) {
     this.openai = new OpenAIApi(configuration);
     this.config = { ...GameBotConfigurationDefaults, ...config };
     this.messages = new Array<ChatCompletionRequestMessage>();
+    this.busy = false;
   }
 
   async send(
     session_id: string,
     message: GameBotMessageI | GameBotMessageI[]
   ): Promise<string> {
-    if (Array.isArray(message)) {
-      this.messages.push(...message);
-    } else {
-      this.messages.push(message);
+    this.busy = true;
+    try {
+      if (Array.isArray(message)) {
+        this.messages.push(...message);
+      } else {
+        this.messages.push(message);
+      }
+      const response = await this.openai.createChatCompletion({
+        messages: this.messages,
+        ...this.config,
+        user: session_id,
+      });
+      const { usage } = response.data;
+      if (usage!.total_tokens! + usage!.completion_tokens! * 2 > 4096) {
+        this.messages = [
+          ...this.messages.slice(0, 3),
+          ...this.messages.slice(2),
+        ];
+      }
+      console.log(response.data.choices[0].message!);
+      this.messages.push(response.data.choices[0].message!);
+      this.busy = false;
+      return response.data.choices[0].message?.content!;
+    } catch (e) {
+      this.busy = false;
+      throw e;
     }
-    const response = await this.openai.createChatCompletion({
-      messages: this.messages,
-      ...this.config,
-      user: session_id,
-    });
-    const { usage } = response.data;
-    if (usage!.total_tokens! + usage!.completion_tokens! * 2 > 4096) {
-      this.messages = [...this.messages.slice(0, 3), ...this.messages.slice(2)];
-    }
-    console.log(response.data.choices[0].message!);
-    this.messages.push(response.data.choices[0].message!);
-    return response.data.choices[0].message?.content!;
   }
 
   async onShot(
     session_id: string,
     message: GameBotMessageI | GameBotMessageI[]
   ): Promise<string> {
-    const messages = [];
-    if (Array.isArray(message)) {
-      messages.push(...message);
-    } else {
-      messages.push(message);
+    try {
+      this.busy = true;
+      const messages = [];
+      if (Array.isArray(message)) {
+        messages.push(...message);
+      } else {
+        messages.push(message);
+      }
+      const response = await this.openai.createChatCompletion({
+        messages,
+        ...this.config,
+        user: session_id,
+      });
+      console.log(response.data.choices[0].message!);
+      this.busy = false;
+      return response.data.choices[0].message?.content!;
+    } catch (e) {
+      this.busy = false;
+      throw e;
     }
-    const response = await this.openai.createChatCompletion({
-      messages,
-      ...this.config,
-      user: session_id,
-    });
-    console.log(response.data.choices[0].message!);
-    return response.data.choices[0].message?.content!;
   }
 
   clear() {

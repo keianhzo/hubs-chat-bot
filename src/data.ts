@@ -32,35 +32,56 @@ You always have to provide 4 options.
 
 export const ElderScrolls: GameDataI = {
   name: "Elder Scrolls",
-  style: 2,
-  system: SYSTEM_PROMPT.replace("%THEME%", "the Elder Scrolls game"),
+  style: 20,
+  system: SYSTEM_PROMPT.replace("%THEME%", "the Elder Scrolls games"),
   rules: RULES_PROMPT,
 };
 
 export const HarryPotter: GameDataI = {
   name: "Harry Potter",
-  style: 9,
-  system: SYSTEM_PROMPT.replace("%THEME%", "the Harry Potter movie"),
+  style: 5,
+  system: SYSTEM_PROMPT.replace("%THEME%", "the Harry Potter books"),
   rules: RULES_PROMPT,
 };
 
 export const LOTR: GameDataI = {
   name: "Lord Of The Rings",
-  style: 5,
-  system: SYSTEM_PROMPT.replace("%THEME%", "the Lord Of The Rings"),
+  style: 2,
+  system: SYSTEM_PROMPT.replace("%THEME%", "the Lord Of The Rings books"),
   rules: RULES_PROMPT,
 };
 
-export const Conjuring: GameDataI = {
-  name: "Conjuring",
-  style: 9,
-  system: SYSTEM_PROMPT.replace("%THEME%", "the Conjuring movie"),
+export const DragonBall: GameDataI = {
+  name: "Dragon Ball",
+  style: 3,
+  system: SYSTEM_PROMPT.replace("%THEME%", "the Dragon Ball manga"),
+  rules: RULES_PROMPT,
+};
+
+export const Naruto: GameDataI = {
+  name: "Naruto",
+  style: 24,
+  system: SYSTEM_PROMPT.replace("%THEME%", "the Naruto anime"),
   rules: RULES_PROMPT,
 };
 
 export const StarWars: GameDataI = {
   name: "Star Wars",
   style: 10,
-  system: SYSTEM_PROMPT.replace("%THEME%", "the Star Wars movie"),
+  system: SYSTEM_PROMPT.replace("%THEME%", "the Star Wars movies"),
+  rules: RULES_PROMPT,
+};
+
+export const Dune: GameDataI = {
+  name: "Dune",
+  style: 32,
+  system: SYSTEM_PROMPT.replace("%THEME%", "the Dune books"),
+  rules: RULES_PROMPT,
+};
+
+export const BladeRunner: GameDataI = {
+  name: "Blade Runner",
+  style: 35,
+  system: SYSTEM_PROMPT.replace("%THEME%", "the Blade Runner book"),
   rules: RULES_PROMPT,
 };

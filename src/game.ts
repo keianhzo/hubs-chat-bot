@@ -5,8 +5,11 @@ import {
   LOTR,
   HarryPotter,
   ElderScrolls,
-  Conjuring,
   StarWars,
+  Dune,
+  DragonBall,
+  Naruto,
+  BladeRunner,
 } from "./data";
 import { HubChannel } from "./reticulum";
 import { SkyboxStyleT, Skyboxes } from "./skybox";
@@ -17,8 +20,11 @@ const GAME_DATA: { [key: string]: GameDataI } = {
   lotr: LOTR,
   hp: HarryPotter,
   es: ElderScrolls,
-  cj: Conjuring,
   sw: StarWars,
+  dn: Dune,
+  db: DragonBall,
+  nt: Naruto,
+  br: BladeRunner,
 };
 
 export type ConfigT = {
@@ -214,41 +220,26 @@ export class Game {
       args: ["connect"],
     });
 
-    if (this.state === GameState.STARTED) {
-      this.text(`${this.channel!.getName(sessionId)} has joined the game`);
-
-      const users = this.channel?.getUsersInRoom(this.sessionId)!;
-      let sessionIds = [...users.keys()];
-      console.log(`Current players: ${sessionIds.join(", ")}`);
-
-      if (sessionId !== this.sessionId) {
-        this.players.add(sessionId);
-      }
-
-      try {
-        let res = await this.bot.send(this.sessionId, {
-          role: ChatCompletionRequestMessageRoleEnum.User,
-          content: `"${sessionId}" joins the game.`,
-        });
-        const content: OptionsResponseI = JSON.parse(res) as OptionsResponseI;
-        content.player = Array.from(this.players)[this.turn];
-        this.lastMsg = {
-          type: CommandE.Options,
-          content,
-        };
-      } catch (e) {
-        this.lastMsg = {
-          type: CommandE.Error,
-          content: (e as any).response?.data?.error?.message || e,
-        };
-      }
-      this.processResponse(this.lastMsg);
-    } else {
+    if (this.state !== GameState.STARTED) {
       this.lastMsg = {
         type: CommandE.Start,
         content: WELCOME_MSG,
       };
       this.processResponse(this.lastMsg);
+      return;
+    }
+
+    if (sessionId !== this.sessionId) {
+      this.players.add(sessionId);
+    }
+
+    console.log(`Current players: ${[...this.players].join(", ")}`);
+
+    const playerName = this.channel!.getName(sessionId);
+    this.text(`${playerName} has joined the game.`);
+
+    if (!this.bot.busy) {
+      setTimeout(() => this.processResponse(this.lastMsg), 4000);
     }
   }
 
@@ -261,38 +252,25 @@ export class Game {
       this.players.delete(sessionId);
     }
 
-    this.text(`${this.channel!.getName(sessionId)} has left the game`);
-
-    const users = this.channel?.getUsersInRoom(this.sessionId)!;
-    let sessionIds = [...users.keys()];
-    console.log(`Current players: ${sessionIds.join(", ")}`);
+    const index = Array.from(this.players).indexOf(sessionId);
+    let nextTurn = this.turn;
+    if (index === nextTurn) {
+      nextTurn = this.nextTurn();
+    }
 
     if (this.players.size === 0) {
       this.end();
     } else {
-      try {
-        let res = await this.bot.send(this.sessionId, {
-          role: ChatCompletionRequestMessageRoleEnum.User,
-          content: `"${sessionId}" leaves the game.`,
-        });
-        const index = Array.from(this.players).indexOf(sessionId);
-        let nextTurn = this.turn;
-        if (index === nextTurn) {
-          nextTurn = this.nextTurn();
-        }
-        const content: OptionsResponseI = JSON.parse(res) as OptionsResponseI;
+      console.log(`Current players: ${[...this.players].join(", ")}`);
+
+      const playerName = this.channel!.getName(sessionId);
+      this.text(`${playerName} has left the game.`);
+
+      if (!this.bot.busy) {
+        const content = this.lastMsg.content as OptionsResponseI;
         content.player = Array.from(this.players)[nextTurn];
-        this.lastMsg = {
-          type: CommandE.Options,
-          content,
-        };
-      } catch (e) {
-        this.lastMsg = {
-          type: CommandE.Error,
-          content: (e as any).response?.data?.error?.message || e,
-        };
+        setTimeout(() => this.processResponse(this.lastMsg), 4000);
       }
-      this.processResponse(this.lastMsg);
     }
   }
 
@@ -371,8 +349,7 @@ export class Game {
   processResponse(res: ResponseT) {
     if (res.type === CommandE.Options) {
       const options = res.content as OptionsResponseI;
-      const users = this.channel!.getUsersInRoom(this.sessionId);
-      let ids = [...users.keys()];
+      let ids = [...this.players];
       ids.forEach((id) => {
         if (id !== this.sessionId) {
           options.prompt.replace(id, this.channel!.getName(id));
