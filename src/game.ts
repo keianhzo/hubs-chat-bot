@@ -363,6 +363,7 @@ export class Game {
 
       skyboxes.cancelAll();
       if (!this.skyboxes.has(options.scene)) {
+        console.log("Generating skybox...");
         const style = skyboxes.styles.find(
           (value: SkyboxStyleT) => value.id === this.type.style
         );
