@@ -361,7 +361,11 @@ export class Game {
         }
       });
 
-      skyboxes.cancelAll();
+      this.channel!.sendCommand("GameBot", {
+        command: "game",
+        args: [res.type, res.content],
+      });
+
       if (!this.skyboxes.has(options.scene)) {
         console.log("Generating skybox...");
         const style = skyboxes.styles.find(
@@ -379,10 +383,6 @@ export class Game {
               this.channel!.sendCommand("GameBot", {
                 command: "game",
                 args: ["skybox", fileUrl],
-              });
-              this.channel!.sendCommand("GameBot", {
-                command: "game",
-                args: [res.type, res.content],
               });
             }
           })
